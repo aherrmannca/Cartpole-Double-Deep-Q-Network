@@ -389,7 +389,7 @@ with tf.Session() as sess:
     ### Filling the replay memory ###
     print("Populating replay memory...")
     env.reset() # Reset the state
-    state = np.array(env.render(mode='rgb_array')) # Will return an RGB array, but also open a window
+    state = np.array(env.render(mode='rgb_array', close=True)) # Will return an RGB array, but also open a window
     state = state_processor.process(sess, state)
     state = np.stack([state] * 4, axis=2)
     for i in range(replay_memory_init_size):
@@ -398,14 +398,14 @@ with tf.Session() as sess:
         action_probs = policy(sess, state, epsilons[total_t])
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
         next_state, reward, done, _ = env.step(action_list[action])
-        next_state = np.array(env.render(mode='rgb_array'))
+        next_state = np.array(env.render(mode='rgb_array', close=True))
         next_state = state_processor.process(sess, next_state)
         next_state = np.append(state[:,:,1:], np.expand_dims(next_state, 2), axis=2)
         replay_memory.append(Transition(state, action, reward, next_state, done))
 
         if done:
             env.reset()
-            state = np.array(env.render(mode='rgb_array'))
+            state = np.array(env.render(mode='rgb_array', close=True))
             state = state_processor.process(sess, state)
             state = np.stack([state] * 4, axis=2)
         else:
@@ -484,9 +484,6 @@ with tf.Session() as sess:
             q_values_next_target = target_estimator.predict(sess, next_states_batch)
             targets_batch = reward_batch + np.invert(done_batch).astype(np.float32) * \
                 discount_factor * q_values_next_target[np.arange(batch_size), best_actions]
-
-            print("actions: ", action_batch.shape)
-            print("y_opt: ", targets_batch.shape)
 
             # Perform gradient descent update
             states_batch = np.array(states_batch)
