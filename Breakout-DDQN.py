@@ -450,7 +450,7 @@ with tf.Session() as sess:
 
             # Print out which step we're on, useful for debugging.
             print("\rStep {} ({}) @ Episode {}/{}, loss: {}".format(
-                    t, total_t, i_episode + 1, num_episodes, loss, end="")
+                    t, total_t, i_episode + 1, num_episodes, loss, end=""))
             sys.stdout.flush()
 
             # Take a step
