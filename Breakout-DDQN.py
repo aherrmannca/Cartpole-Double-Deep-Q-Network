@@ -157,16 +157,20 @@ class DQN():
         # LAYERS
         X = tf.to_float(self.X) / 255.0
 
-        convo_1 = self.convolutional_layer(X, shape=[3,3,4,32])
-        batch_norm_1 = self.batch_norm(convo_1, phase=self.phase)
-        max_pool_1 = self.max_pool(batch_norm_1)
+        convo_1_1 = self.convolutional_layer(X, shape=[3,3,4,32])
+        batch_norm_1_1 = self.batch_norm(convo_1_1, phase=self.phase)
+        convo_1_2 = self.convolutional_layer(batch_norm_1_1, shape=[3,3,32,32])
+        batch_norm_1_2 = self.batch_norm(convo_1_2, phase=self.phase)
+        max_pool_1_2 = self.max_pool(batch_norm_1_2)
 
-        convo_2 = self.convolutional_layer(max_pool_1, shape=[3,3,32,64])
-        batch_norm_2 = self.batch_norm (convo_2, phase=self.phase)
-        max_pool_2 = self.max_pool(batch_norm_2)
+        convo_2_1 = self.convolutional_layer(max_pool_1_2, shape=[3,3,32,64])
+        batch_norm_2_1 = self.batch_norm(convo_2_1, phase=self.phase)
+        convo_2_2 = self.convolutional_layer(batch_norm_2_1, shape=[3,3,64,64])
+        batch_norm_2_2 = self.batch_norm (convo_2_2, phase=self.phase)
+        max_pool_2_2 = self.max_pool(batch_norm_2_2)
 
         # h = 84 / 2*2 and w = 84 / 2*2
-        flat = tf.reshape(max_pool_2, [-1, 21 * 21 * 64])
+        flat = tf.reshape(max_pool_2_2, [-1, 21 * 21 * 64])
         full_layer_1 = tf.nn.relu(self.normal_full_layer(flat, size=1024))
 
         # REQUIRE THE CLASS ITSELF TO SEND AN ACTION LIST LATER
@@ -326,16 +330,16 @@ target_estimator = DQN(scope='target_q')
 state_processor = StateProcessor()
 
 # Rest of the variables
-batch_size = 32
-num_episodes = 10000
-update_target_estimator_every = 10000
-reset_episode_every = 1000
+batch_size = 128
+num_episodes = 1000
+update_target_estimator_every = 1000
+reset_episode_every = 5000
 discount_factor = 0.99
-replay_memory_size = 500000
-replay_memory_init_size = 50000
+replay_memory_size = 50000
+replay_memory_init_size = 5000
 epsilon_min = 0.1
 epsilon_max = 1.0
-epsilon_decay = 500000
+epsilon_decay = 50000
 
 
 ##### Main Deep Q Learning Implementation #####
@@ -393,6 +397,7 @@ with tf.Session() as sess:
     for i in range(replay_memory_init_size):
         if i % 1000 == 0:
             print("On step {}".format(i))
+            sys.stdout.flush()
         action_probs = policy(sess, state, epsilons[total_t])
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
         next_state, reward, done, _ = env.step(action_list[action])
@@ -439,6 +444,8 @@ with tf.Session() as sess:
             # Maybe update the target estimator
             if total_t % update_target_estimator_every == 0:
                 copy_model_parameters(sess, policy_network, target_estimator)
+                tot_r = np.sum(episode_rewards[total_t-update_target_estimator_every:total_t-1])
+                print("\nTotal reward for last {} steps for steps {} to {}: {}".format(t, total_t-update_target_estimator_every, total_t, tot_r))
                 print("\nCopied model parameters to target network")
 
             # Print out which step we're on, useful for debugging.
@@ -505,5 +512,5 @@ with tf.Session() as sess:
 
     # env.monitor.close() -- deprecated
 
-    for t, statistics in zip(episode_length, episode_rewards):
-        print("\nEpisode Reward: {}".format(statistics.episode_rewards[-1]))
+    #for t, reward in zip(episode_lengths, episode_rewards):
+        #print("\nEpisode Reward: {}".format(reward[-1]))
